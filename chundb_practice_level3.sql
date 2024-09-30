@@ -180,7 +180,7 @@ select
 	s.student_no as  학번
 	, s.student_name as 이름
     , d.department_name as 학과이름
-    , truncate(avg(point),1) as 평점
+    , round(avg(point),1) as 평점
     , s.ABSENCE_YN
 from
 	tb_student s
@@ -191,7 +191,7 @@ where
 group by
 	s.student_no, s.student_name, d.department_name
 having
-    truncate(avg(point),1) >= 4.0
+    round(avg(point),1) >= 4.0
 order by 
 	s.student_no;
 
@@ -225,41 +225,15 @@ where
 order by
 	student_name;
 
+
+
+
 -- 18번(3번)
 
-select
-	s.student_name,
-    avg(g.point)
-from tb_student s
-	join tb_grade g on s.student_no = g.student_no
-group by
-	g.student_no
-having
-	avg(g.point) = (
-					select
-						s.student_no
-						, max(avg_point)
-					from
-						( select
-								avg(g.point) as avg_point
-							from tb_grade g
-								join tb_student s on g.student_no = s.student_no
-							where
-								s.department_no = (
-										select department_no
-										from tb_department
-										where department_name = '국어국문학과'
-										)
-							group by g.student_no
-						) as avgPointList
-					);
-
-select
-	student_no
-	, max(avg_point)
-from
-	( select
+with avg_table as (
+	select
 		s.student_no,
+		s.student_name,
 		avg(g.point) as avg_point
 	from tb_grade g
 		join tb_student s on g.student_no = s.student_no
@@ -270,30 +244,52 @@ from
 							where department_name = '국어국문학과'
 						)
 	group by g.student_no
-) as avgPointList
-group by student_no;
+)
+select
+	student_no,
+    avg_point,
+    student_name
+from 
+	avg_table
+where
+	avg_point = (select max(avg_point) from avg_table);
 
+-- 2번 join
+with avg_table as (
+	select
+		s.student_no ,
+		avg(g.point) as avg_point
+	from tb_grade g
+		join tb_student s on g.student_no = s.student_no
+	where
+		s.department_no = (
+							select department_no
+							from tb_department
+							where department_name = '국어국문학과'
+						)
+	group by g.student_no
+)
+select
+	s.student_no,
+	s.student_name,
+    at.avg_point
+from tb_student s
+	join avg_table at on at.student_no = s.student_no
+where
+	at.avg_point = (select max(avg_point) from avg_table);
+
+-- 테스트
 select
 	s.student_name,
     avg(g.point)
 from tb_student s
 	join tb_grade g on s.student_no = g.student_no
-where
-	avg(g.point) = 3.833333
 group by
-	g.student_no;
+	g.student_no
+having
+	avg(g.point) = 3.83333;
 
-SELECT
-    s.student_name,
-    AVG(g.point) AS avg_point
-FROM
-    tb_student s
-JOIN
-    tb_grade g ON s.student_no = g.student_no
-GROUP BY
-    s.student_no
-HAVING
-    AVG(g.point) > 3.833;
+
 
 -- 19번 (4번)
 select
